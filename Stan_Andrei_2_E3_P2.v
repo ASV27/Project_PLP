@@ -459,20 +459,7 @@ match n, l with
 | _, _ => errstringing
 end.
 
-(*
-Definition ElemG ( v : Value) (n : ErrorNat ) : Value :=
-match v, n with
-| undecl, _ => errnat
-| vecs vec, n1 => 
-                          match vec, n1 with 
-                            | natvec vn, n2 => NatvecG vn n1
-                            | boolvec vb, n2 => BoolvecG vb n2
-                            | strvec vs, n2 => StrvecG vs n2
-                            | _, _ => errnat
-                          end
-| _, _ => errnat
-end.
-*)
+
 
 
 
@@ -514,61 +501,6 @@ match a, b with
 | num n, num m => Nat.modulo n m
 end.
 
-
-
-
-
-
-(*
-
-Coercion anat : ErrorNat >-> AExp.
-
-
-Reserved Notation "A =[ S ]=> N" (at level 60).
-Inductive aeval : AExp -> EnvS -> ErrorNat -> Prop :=
-| constE : forall n sigma, anat n =[ sigma ]=> n 
-(*
-| avarE : forall n sigma, avar n =[ sigma ]=> (natG (sigma n))
-*)
-
-| addE : forall a b i j sigma n,
-    a =[ sigma ]=> i ->
-    b =[ sigma ]=> j ->
-    n =  Natadd i j ->
-    a +' b =[sigma]=> n
-
-| subE : forall a b i j sigma n,
-    a =[ sigma ]=> i ->
-    b =[ sigma ]=> j ->
-    n =  Natsub i j ->
-    a -' b =[sigma]=> n
-
-| mulE : forall a b i j sigma n,
-    a =[ sigma ]=> i ->
-    b =[ sigma ]=> j ->
-    n = Natmul i j ->
-    a *' b =[sigma]=> n
-
-| divE : forall a b i j sigma n,
-    a =[ sigma ]=> i ->
-    b =[ sigma ]=> j ->
-    n =  Natdiv i j ->
-    a /' b =[sigma]=> n
-
-| modE : forall a b i j sigma n,
-    a =[ sigma ]=> i ->
-    b =[ sigma ]=> j ->
-    n =  Natmod i j ->
-    a %' b =[sigma]=> n
-| boolTOnatE : forall c sigma, a_bool_to_nat c =[ sigma ]=> conv_bool_nat c
-
-| e_aget_vect_valE : forall v1 v2 n sigma,
-  v2 = (sigma v1) ->
-  a_get_vect_val v1 n =[ sigma ]=> natG (get_element v2 n)
-
-where "a =[ sigma ]=> n" := (aeval a sigma n).
-
-*)
 
 
 
@@ -620,7 +552,101 @@ end.
 
 
 
+
+
+
+
+Fixpoint UpdateVs ( sigma : EnvS ) (p : list Dec) ( l : list Value ) : EnvS :=
+match l with
+| nil => sigma
+| x::l' => match x, p with
+           | NatP n, y::l'' => match y with
+                                    | Decint nt => UpdateVs (UpdateV sigma nt n) l'' l'
+                                    | Decbool bt => UpdateVs (UpdateV sigma bt n) l'' l'
+                                    | Decstring st => UpdateVs (UpdateV sigma st n) l'' l'
+                                    | _ => sigma
+                                    end
+           | _, _ => sigma
+           end
+end.
+
+
+Definition call (sigma : EnvS ) ( v : string) ( x : Value ) (l' : Value) : EnvS :=
+match x with
+| paramS l st => UpdateV sigma l l'
+| _ => sigma
+end.
+
+
+Definition get_st (x : Value) : Stmt :=
+match x with
+| paramS l st => st
+| _ => errstmt
+end.
+
+
+(* -------------------------------------------------- Environments & Operations *)
+
+
+
+
+
+
+
+
+
+
+
 (*
+
+Reserved Notation "A =[ S ]=> N" (at level 60).
+Inductive aeval : AExp -> EnvS -> ErrorNat -> Prop :=
+| constE : forall n sigma, anat n =[ sigma ]=> n 
+
+| avarE : forall n sigma, avar n =[ sigma ]=> (natG (sigma n))
+
+
+| addE : forall a b i j sigma n,
+    a =[ sigma ]=> i ->
+    b =[ sigma ]=> j ->
+    n =  Natadd i j ->
+    a +' b =[sigma]=> n
+
+| subE : forall a b i j sigma n,
+    a =[ sigma ]=> i ->
+    b =[ sigma ]=> j ->
+    n =  Natsub i j ->
+    a -' b =[sigma]=> n
+
+| mulE : forall a b i j sigma n,
+    a =[ sigma ]=> i ->
+    b =[ sigma ]=> j ->
+    n = Natmul i j ->
+    a *' b =[sigma]=> n
+
+| divE : forall a b i j sigma n,
+    a =[ sigma ]=> i ->
+    b =[ sigma ]=> j ->
+    n =  Natdiv i j ->
+    a /' b =[sigma]=> n
+
+| modE : forall a b i j sigma n,
+    a =[ sigma ]=> i ->
+    b =[ sigma ]=> j ->
+    n =  Natmod i j ->
+    a %' b =[sigma]=> n
+| boolTOnatE : forall c sigma, a_bool_to_nat c =[ sigma ]=> conv_bool_nat c
+
+| e_aget_vect_valE : forall v1 v2 n sigma,
+  v2 = (sigma v1) ->
+  a_get_vect_val v1 n =[ sigma ]=> natG (get_element v2 n)
+where "a =[ sigma ]=> n" := (aeval a sigma n).
+
+
+
+
+
+
 
 Reserved Notation "B ={ S }=> B'" (at level 70).
 Inductive beval : Bexp -> EnvS -> ErrorBool -> Prop :=
@@ -700,146 +726,12 @@ Inductive beval : Bexp -> EnvS -> ErrorBool -> Prop :=
 
 where "B ={ S }=> B'" := (beval B S B').
 
-*)
-
-
-
-Fixpoint UpdateVs ( sigma : EnvS ) (p : list Dec) ( l : list Value ) : EnvS :=
-match l with
-| nil => sigma
-| x::l' => match x, p with
-           | NatP n, y::l'' => match y with
-                                    | Decint nt => UpdateVs (UpdateV sigma nt n) l'' l'
-                                    | Decbool bt => UpdateVs (UpdateV sigma bt n) l'' l'
-                                    | Decstring st => UpdateVs (UpdateV sigma st n) l'' l'
-                                    | _ => sigma
-                                    end
-           | _, _ => sigma
-           end
-end.
-
-
-Definition call (sigma : EnvS ) ( v : string) ( x : Value ) (l' : Value) : EnvS :=
-match x with
-| paramS l st => UpdateV sigma l l'
-| _ => sigma
-end.
-
-
-Definition get_st (x : Value) : Stmt :=
-match x with
-| paramS l st => st
-| _ => errstmt
-end.
 
 
 
 
-(*Reserved Notation "S -{ Sigma }-> Sigma'" (at level 60).
-
-Inductive eval : Stmt -> EnvS -> EnvS -> Prop :=
-| decnatE : forall v sigma sigma',
-    sigma' = (update sigma v) ->
-    decnat v -{ sigma }-> sigma'
-| decboolE : forall v sigma sigma',
-    sigma' = (update sigma v) ->
-    decbool v -{ sigma }-> sigma'
-| decstringE : forall v sigma sigma',
-    sigma' = (update sigma v) ->
-    declstring v -{ sigma }-> sigma'
-| decnatIE : forall v x sigma sigma',
-    sigma' = (update_value sigma v x) ->
-    decnatexp v (natG x) -{ sigma }-> sigma'
-| decboolIE : forall v x sigma sigma',
-    sigma' = (update_value sigma v x) ->
-    decboolexp v (boolG x) -{ sigma }-> sigma'
-| decstringIE : forall v x sigma sigma',
-    sigma' = (update_value sigma v x) ->
-    decstringexp v (strG x) -{ sigma }-> sigma'
-| decpointnatE : forall v sigma sigma',
-    sigma' = (update sigma v) ->
-    declpointnat v -{ sigma }-> sigma'
-| decpointboolE : forall v sigma sigma',
-    sigma' = (update sigma v) ->
-    decpointbool v -{ sigma }-> sigma'
-| decpointstrE : forall v sigma sigma',
-    sigma' = (update sigma v) ->
-    decpointerstring v -{ sigma }-> sigma'
-| decvecnatE : forall v x sigma sigma',
-    sigma' = (update sigma v) ->
-    decvecnatE v x -{ sigma }-> sigma'
-| decvecboolE : forall v x sigma sigma',
-    sigma' = (update sigma v) ->
-    decvecbool v x -{ sigma }-> sigma'
-| decvecstringE : forall v x sigma sigma',
-    sigma' = (update sigma v) ->
-    decvecstring v x -{ sigma }-> sigma'
-| assignmentE: forall a i x sigma sigma',
-    a =[ sigma ]=> i ->
-    sigma' = (update_value sigma x i) ->
-    (x ::= a) -{ sigma }-> sigma'
-| seqE : forall s1 s2 sigma sigma sigmb,
-    s1 -{ sigma }-> sigma ->
-    s2 -{ sigma }-> sigmb ->
-    (s1 ;; s2) -{ sigma }-> sigmb
-| whilefalseE : forall b s sigma,
-    b ={ sigma }=> b_false ->
-    while ( b ) { s } -{ sigma }-> sigma
-| whiletrueE : forall b s sigma sigma',
-    b ={ sigma }=> b_true ->
-    (s ;; while ( b ) { s }) -{ sigma }-> sigma' ->
-    while ( b ) { s } -{ sigma }-> sigma'
-| iffalseE : forall b s sigma,
-    b ={ sigma }=> b_false ->
-    if_then b s -{ sigma }-> sigma
-| iftrueE : forall b s sigma sigma',
-    b ={ sigma }=> b_true ->
-    s -{ sigma }-> sigma'->
-    if_then b s -{ sigma }-> sigma'
-| ifefalseE : forall b s1 s2 sigma sigma',
-    b ={ sigma }=> b_false ->
-    s2 -{ sigma }-> sigma'->
-    if_then_else b s1 s2 -{ sigma }-> sigma'
-| ifetrueE : forall b s1 s2 sigma sigma',
-    b ={ sigma }=> b_true ->
-    s1 -{ sigma }-> sigma'->
-    if_then_else b s1 s2 -{ sigma }-> sigma'
-| forfalseE : forall s1 b s2 s3 sigma sigma',
-    s1 -{ sigma }-> sigma' ->
-    b ={ sigma' }=> b_false ->
-    for' (s1 ; b ; s2) { s3 } -{ sigma }-> sigma'
-| fortrueE : forall s1 b s2 s3 sigma sigma' sigma'',
-    s1 -{ sigma }-> sigma' ->
-    b ={ sigma' }=> b_true ->
-    (s3 ;; s2 ;; for' (s1 ; b ; s2 ) { s3 }) -{ sigma' }-> sigma'' ->
-    for' (s1 ; b ; s2) { s3 } -{ sigma }-> sigma''
-| callE : forall v p sigma sigma' sigma'',
-    sigma' = call_f sigma v (sigma v) p ->
-    get_st (sigma v) -{ sigma' }-> sigma''->
-    call_fun v p -{ sigma }-> sigma''
-
-where "s -{ sigma }-> sigma'" := (eval s sigma sigma').
-*)
 
 
-(* -------------------------------------------------- Environments & Operations *)
-
-
-
-
-(*
-Definition conca(s t : ErrorString) : ErrorString :=
-match s, t with
-  |_, errstring => errstring
-  |errstring, _ => errstring
-  |str s, str t => str (s ++ t)
-end.
-*)
-
-
-
-
-(*
 Reserved Notation "B  =< S >=> B'" (at level 80).
 Inductive streval : STRexp -> Env -> String -> Prop :=
 | svar : forall v sigma, s_var v =< sigma >=> strG (sigma v)
@@ -855,29 +747,17 @@ Inductive streval : STRexp -> Env -> String -> Prop :=
   s_get_vect_val v1 n =< sigma >=> strG (get_element v2 n)
 
 where "B =< S >=> B'" := (streval B S B').
+
+
+
+Definition conca(s t : ErrorString) : ErrorString :=
+match s, t with
+  |_, errstring => errstring
+  |errstring, _ => errstring
+  |str s, str t => str (s ++ t)
+end.
+
+
 *)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
